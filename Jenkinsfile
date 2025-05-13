@@ -1,17 +1,32 @@
 pipeline {
-  agent any
-  stages {
-    stage("verify tooling") {
-      steps {
-        sh '''
-          docker version
-          docker info
-          docker compose version 
-          curl --version
-          jq --version
+  agent {
+    kubernetes {
+      yaml '''
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+          - name: docker
+            image: docker:latest
+            command:
+            - cat
+            tty: true
+            volumeMounts:
+            - name: dockersock
+              readOnly: true
+              mountPath: /var/run/docker.sock
+            resources:
+              limits:
+                cpu: 1000m
+                memory: 768Mi
+          volumes:
+          - name: dockersock
+            hostPath: 
+              path: /var/run/docker.sock
         '''
-      }
     }
+  }  
+  stages {
     stage('Prune Docker data') {
       steps {
         sh 'docker system prune -a --volumes -f'
